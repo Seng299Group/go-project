@@ -63,12 +63,12 @@ class GameBoard {
 
     }
 
-    //  getSpace
+    //  get
     //      Params
     //          x - x coordinate
     //          y - y coordinate
     //      Returns 0, 1, or 2
-    getSpace (x, y) {
+    get (x, y) {
         return this.board[y][x];
     }
 
@@ -78,7 +78,7 @@ class GameBoard {
         return this.board;
     }
 
-    //  getSpace
+    //  get
     //      Params
     //          val - 0, 1, or 2, the p
     //          x - x coordinate
@@ -99,7 +99,7 @@ class GameBoard {
 
             for (j=0; j<this.size; j++) {
 
-                newBoard.set(this.getSpace(i, j), i, j);
+                newBoard.set(this.get(i, j), i, j);
             }
         }
 

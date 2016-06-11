@@ -38,20 +38,33 @@ class GameSpace {
     //  evaluateMove
     //
     //      This function evalutates the change in the board made by placing
-    //      a token, including destroying armies.
+    //      a token, including destroying armies.  Used to check if a move
+    //      reverts the board, and to update the gameboard.
     //
     //      Params:
-    //          gameboard - a gameboard
     //          player - the player placing a token
     //          x - the x-coordinate where the player is placing a token
     //          y - the y-coordinate
-    __evaluateMove (gameboard, player, x, y) {
+    //          gameboard - a gameboard. If omitted, uses current state of this
+    //              gamespace's board
+    __evaluateMove (player, x, y, gameboard) {
+
+        var thisBoard = gameboard || this.board;
 
 
     }
 
     // placeToken
+    //
     //      Places a token on the space after checking that the move is legal
+    //
+    //      Params:
+    //          player - the player placing a token
+    //          x - the x-coordinate where the player is trying to place a token
+    //          y - the y-coordinate
+    //      Returns:
+    //          True if the move was legal and applied
+    //          False if the move was illegal and not applied
     placeToken (player, x, y) {
 
         if (this.checkLegal(player, x, y)) {
@@ -60,7 +73,9 @@ class GameSpace {
             this.board = this.board.clone();
             this.board.set(player, x, y);
             this.board.print();
+            return true;
         }
+        return false;
     }
 
     //  opposingPlayer
@@ -96,35 +111,35 @@ class GameSpace {
         return GameBoard.equal(tempBoard, this.history[this.history.length - 1])
     }
 
-    //  spaceLibeties
+    //  countSpaceLiberties
     //      Params:
     //          player - the player placing a token
     //          x - the x-coordinate where the player is trying to place a token
     //          y - the y-coordinate
     //      Returns the number of liberties the space has, including friendly
     //          armies
-    __spaceLiberties (player, x, y) {
+    __countSpaceLiberties (player, x, y) {
 
         var liberties = 0
         var opponent = this.__opposingPlayer(player);
 
-        if (x - 1 > -1 && this.board.getSpace(x - 1, y) != opponent) {
+        if (x - 1 > -1 && this.board.get(x - 1, y) != opponent) {
             liberties += 1;
         }
-        if (y - 1 > -1 && this.board.getSpace(x, y - 1) != opponent) {
+        if (y - 1 > -1 && this.board.get(x, y - 1) != opponent) {
             liberties += 1;
         }
-        if (x + 1 < this.size && this.board.getSpace(x + 1, y) != opponent) {
+        if (x + 1 < this.size && this.board.get(x + 1, y) != opponent) {
             liberties += 1;
         }
-        if (y + 1 < this.size && this.board.getSpace(x, y + 1) != opponent) {
+        if (y + 1 < this.size && this.board.get(x, y + 1) != opponent) {
             liberties += 1;
         }
 
         return liberties;
     }
 
-    //  countLibertiesDFS
+    //  countArmyLibertiesDFS
     //
     //      This is a recursive DFS algorithm that counts the liberties of an
     //      army.
@@ -135,12 +150,12 @@ class GameSpace {
     //          y - the y-coordinate
     //          visited - a GameBoard object where visited spaces are marked 1
     //      Return the number of liberties the army starting at (x,y) has
-    __countLibertiesDFS (player, x, y, visited) {
+    __countArmyLibertiesDFS (player, x, y, visited) {
 
         console.log('-----------------------');
         console.log('(' + x + ',' + y + ')');
-        console.log('(Visited: ' + visited.getSpace(x, y));
-        console.log('Belongs To:' + this.board.getSpace(x, y));
+        console.log('(Visited: ' + visited.get(x, y));
+        console.log('Belongs To:' + this.board.get(x, y));
 
         var liberties = 0;
 
@@ -148,7 +163,7 @@ class GameSpace {
         //  1) This space has been visited
         //  2) This space belongs to the current player
         //Then don't count its liberties towards the total
-        if (visited.getSpace(x, y) === 1 || this.board.getSpace(x, y) === player) {
+        if (visited.get(x, y) === 1 || this.board.get(x, y) === player) {
             return 0;
         }
 
@@ -157,39 +172,39 @@ class GameSpace {
 
         //If This space is unoccupied
         //Then Return 1 Liberty
-        if (this.board.getSpace(x, y) === 0) {
+        if (this.board.get(x, y) === 0) {
             return 1;
         }
 
         //If adjacent square is not off the board
         //Then check who it belongs to and add their liberties to the total
         if (x - 1 > -1) {
-            liberties += this.__countLibertiesDFS(player, x-1, y, visited);
+            liberties += this.__countArmyLibertiesDFS(player, x-1, y, visited);
         }
         if (y - 1 > -1) {
-            liberties += this.__countLibertiesDFS(player, x, y-1, visited);
+            liberties += this.__countArmyLibertiesDFS(player, x, y-1, visited);
         }
         if (x + 1 < this.size) {
-            liberties += this.__countLibertiesDFS(player, x+1, y, visited);
+            liberties += this.__countArmyLibertiesDFS(player, x+1, y, visited);
         }
         if (y + 1 < this.size) {
-            liberties += this.__countLibertiesDFS(player, x+1, y, visited);
+            liberties += this.__countArmyLibertiesDFS(player, x+1, y, visited);
         }
 
         //Return the Liberties of all adjacent, non-visted spaces
         return liberties;
     }
 
-    //  countLiberties
+    //  countArmyLiberties
     //      Params:
     //          player - 1 or 2, the player trying to play their turn
     //          x - the x-coordinate where the player is trying to place a token
     //          y - the y-coordinate
     //      Return the TOTAL number of liberties the army including (x,y) has
-    __countLiberties (player, x, y) {
+    __countArmyLiberties (player, x, y) {
         var visited = new GameBoard(this.size);
 
-        return this.__countLibertiesDFS(player, x, y, visited);
+        return this.__countArmyLibertiesDFS(player, x, y, visited);
     }
 
     //  areArmiesDestroyed
@@ -211,29 +226,29 @@ class GameSpace {
         var count;
         var opponent = this.__opposingPlayer(player);
 
-        if (x - 1 > -1 && this.board.getSpace(x-1, y) === opponent) {
-            count = this.__countLiberties(player, x-1, y);
+        if (x - 1 > -1 && this.board.get(x-1, y) === opponent) {
+            count = this.__countArmyLiberties(player, x-1, y);
             console.log('(' + (x-1) + ',' + y + ')' + ' army liberties:' + count);
             if (count === 1) {
                 return true;
             }
         }
-        if (y - 1 > -1 && this.board.getSpace(x, y-1) === opponent) {
-            count = this.__countLiberties(player, x, y-1);
+        if (y - 1 > -1 && this.board.get(x, y-1) === opponent) {
+            count = this.__countArmyLiberties(player, x, y-1);
             console.log('(' + x + ',' + (y-1) + ')' + ' army liberties:' + count);
             if (count === 1) {
                 return true;
             };
         }
-        if (x + 1 < this.size && this.board.getSpace(x+1, y) === opponent) {
-            count = this.__countLiberties(player, x+1, y);
+        if (x + 1 < this.size && this.board.get(x+1, y) === opponent) {
+            count = this.__countArmyLiberties(player, x+1, y);
             console.log('(' + (x+1) + ',' + y + ')' + ' army liberties:' + count);
             if (count === 1) {
                 return true;
             };
         }
-        if (y + 1 < this.size && this.board.getSpace(x, y+1) === opponent) {
-            count = this.__countLiberties(player, x, y+1);
+        if (y + 1 < this.size && this.board.get(x, y+1) === opponent) {
+            count = this.__countArmyLiberties(player, x, y+1);
             console.log('(' + x + ',' + (y+1) + ')' + ' army liberties:' + count);
             if (count === 1) {
                 return true;
@@ -259,8 +274,8 @@ class GameSpace {
 
         console.log('-----------------------');
         console.log('(' + x + ',' + y + ')');
-        console.log('(Visited: ' + visited.getSpace(x, y));
-        console.log('Belongs To:' + this.board.getSpace(x, y));
+        console.log('(Visited: ' + visited.get(x, y));
+        console.log('Belongs To:' + this.board.get(x, y));
 
         var opponent = this.__opposingPlayer(player);
 
@@ -272,7 +287,7 @@ class GameSpace {
 
         //If this space has been visited
         //Then return token, but mark it as a duplicate of a visited token
-        if (visited.getSpace(x, y) === 1) {
+        if (visited.get(x, y) === 1) {
             token.invalid = true;
             return token;
         }
@@ -284,7 +299,7 @@ class GameSpace {
         //  1) this space belongs to the opponent
         //  2) this space is unoccupied
         //Then visit
-        if (this.board.getSpace(x, y) === opponent || this.board.getSpace(x, y) === 0) {
+        if (this.board.get(x, y) === opponent || this.board.get(x, y) === 0) {
             token.invalid = true;
             return token;
         }
@@ -336,7 +351,7 @@ class GameSpace {
     //          True if the army is destroyed by this move
     //          False otherwise
     __isArmyDestroyed (player, x, y) {
-        if (__countLibertiesDFS (player, x, y, visited) === 0) {
+        if (__countArmyLibertiesDFS (player, x, y, visited) === 0) {
             return true;
         }
         else {
@@ -378,7 +393,7 @@ class GameSpace {
             }
         }
 
-        else if (this.__spaceLiberties(player, x, y) > 0) {
+        else if (this.__countSpaceLiberties(player, x, y) > 0) {
             console.log('--valid move');
             return true;
         }
